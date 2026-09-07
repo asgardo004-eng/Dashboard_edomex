@@ -8,6 +8,53 @@ st.set_page_config(
     layout="wide",
 )
 
+
+# Función de autenticación por contraseña usando Streamlit Secrets
+def verificar_password():
+  # Si la contraseña no está configurada en los secretos de la nube, avisa en consola
+  if "PASSWORD" not in st.secrets:
+    st.error(
+        "⚠️ Error de configuración: La contraseña no está definida en los"
+        " Secrets de Streamlit."
+    )
+    return False
+
+  # Si el usuario ya puso la contraseña correcta en esta sesión, déjalo pasar
+  if st.session_state.get("password_correct", False):
+    return True
+
+  # Pantalla de Login institucional
+  st.markdown("<br><br>", unsafe_allow_html=True)
+  col1, col2, col3 = st.columns([1, 2, 1])
+
+  with col2:
+    st.markdown("## 🏛️ Gobierno del Estado de México")
+    st.subheader("Acceso Restringido - Sistema de Órdenes")
+    st.markdown("Por favor, introduce la contraseña de acceso autorizado.")
+
+    with st.form("form_login"):
+      input_password = st.text_input("Contraseña", type="password")
+      submit_btn = st.form_submit_button("Entrar al Sistema", use_container_width=True)
+
+      if submit_btn:
+        if input_password == st.secrets["PASSWORD"]:
+          st.session_state["password_correct"] = True
+          st.rerun()
+        else:
+          st.error("❌ Contraseña incorrecta. Inténtalo de nuevo.")
+
+  return False
+
+
+# Bloquear la ejecución si no se ha autenticado
+if not verificar_password():
+  st.stop()
+
+
+# ==========================================
+# CÓDIGO DEL TABLERO (Solo se ejecuta si el login es correcto)
+# ==========================================
+
 # Enlace de exportación directa para Google Sheets
 SHEET_ID = "1sAIQK7-26p6n2kF93JNpfoMXDzKwjOEo"
 URL_SHEETS = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
@@ -18,13 +65,12 @@ URL_SHEETS = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=x
 )  # Actualiza los datos de la nube automáticamente cada minuto
 def cargar_datos():
   try:
-    # Lee los datos directamente desde el Google Sheet exportado
     df = pd.read_excel(URL_SHEETS, engine="openpyxl", dtype=str)
     return df.fillna("")
   except Exception as e:
     st.error(
         f"No se pudo cargar el archivo desde Google Drive. Verifica los permisos"
-        f" públicos de lectura: {e}"
+        f" de lectura: {e}"
     )
     return pd.DataFrame()
 
@@ -117,3 +163,9 @@ else:
       "💡 **Nota:** Este apartado es exclusivamente de consulta en la nube"
       " (actualizado automáticamente)."
   )
+
+  # Botón de cerrar sesión en la barra lateral
+  st.sidebar.markdown("---")
+  if st.sidebar.button("🔒 Cerrar Sesión"):
+    st.session_state["password_correct"] = False
+    st.rerun()
