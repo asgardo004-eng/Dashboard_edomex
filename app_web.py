@@ -11,7 +11,6 @@ st.set_page_config(
 
 # Función de autenticación por contraseña usando Streamlit Secrets
 def verificar_password():
-  # Si la contraseña no está configurada en los secretos de la nube, avisa en consola
   if "PASSWORD" not in st.secrets:
     st.error(
         "⚠️ Error de configuración: La contraseña no está definida en los"
@@ -19,11 +18,9 @@ def verificar_password():
     )
     return False
 
-  # Si el usuario ya puso la contraseña correcta en esta sesión, déjalo pasar
   if st.session_state.get("password_correct", False):
     return True
 
-  # Pantalla de Login institucional
   st.markdown("<br><br>", unsafe_allow_html=True)
   col1, col2, col3 = st.columns([1, 2, 1])
 
@@ -46,26 +43,24 @@ def verificar_password():
   return False
 
 
-# Bloquear la ejecución si no se ha autenticado
 if not verificar_password():
   st.stop()
 
 
 # ==========================================
-# CÓDIGO DEL TABLERO (Solo se ejecuta si el login es correcto)
+# CÓDIGO DEL TABLERO
 # ==========================================
 
-# Enlace de exportación directa para Google Sheets
 SHEET_ID = "1sAIQK7-26p6n2kF93JNpfoMXDzKwjOEo"
+# Añadimos un parámetro de tiempo aleatorio o nos aseguramos de pedir la versión limpia
 URL_SHEETS = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
 
 
-@st.cache_data(
-    ttl=60
-)  # Actualiza los datos de la nube automáticamente cada minuto
-def cargar_datos():
+# SIN CACHÉ (ttl=0) para forzar la lectura fresca de Google Drive en cada consulta
+@st.cache_data(ttl=0)
+def cargar_datos(url):
   try:
-    df = pd.read_excel(URL_SHEETS, engine="openpyxl", dtype=str)
+    df = pd.read_excel(url, engine="openpyxl", dtype=str)
     return df.fillna("")
   except Exception as e:
     st.error(
@@ -82,7 +77,13 @@ st.subheader(
 )
 st.markdown("---")
 
-df_ordenes = cargar_datos()
+# Botón en la barra lateral para limpiar la caché manualmente y forzar recarga
+if st.sidebar.button("🔄 Sincronizar / Refrescar Datos"):
+  st.cache_data.clear()
+  st.rerun()
+
+# Carga de datos directa (sin retención de caché)
+df_ordenes = cargar_datos(URL_SHEETS)
 
 if df_ordenes.empty:
   st.warning(
