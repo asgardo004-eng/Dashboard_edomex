@@ -52,14 +52,14 @@ if not verificar_password():
 # CÓDIGO DEL TABLERO
 # ==========================================
 
-SHEET_ID = "1sAIQK7-26p6n2kF93JNpfoMXDzKwjOEo"
+# NUEVO ID CORREGIDO
+SHEET_ID = "1oEzDOrGsJ9G-4y7KCXuLXy1SDha5I1q_"
 
 
 # SIN CACHÉ (ttl=0) y con parámetro dinámico para romper la caché de Google Sheets
 @st.cache_data(ttl=0)
 def cargar_datos():
   try:
-    # Añadimos un timestamp dinámico para evitar que Google devuelva una versión vieja guardada en caché
     timestamp = int(time.time() // 15)  # Se actualiza cada 15 segundos
     url_dinamica = (
         f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx&t={timestamp}"
